@@ -77,6 +77,30 @@ public final class MainActivity extends Activity {
     codeActions.addView(openCode, new LinearLayout.LayoutParams(0, -2, 1));
     codeActions.addView(saveCode, new LinearLayout.LayoutParams(0, -2, 1));
     root.addView(codeActions);
+    Button reviewPatch = new Button(this);
+    reviewPatch.setText("Review replacement code from clipboard");
+    root.addView(reviewPatch);
+    reviewPatch.setOnClickListener(v -> {
+      android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+      if (cm == null || !cm.hasPrimaryClip()) { Toast.makeText(this, "Clipboard is empty", Toast.LENGTH_SHORT).show(); return; }
+      android.content.ClipData clip = cm.getPrimaryClip();
+      if (clip == null || clip.getItemCount() == 0) return;
+      CharSequence candidate = clip.getItemAt(0).coerceToText(this);
+      if (candidate == null || candidate.length() == 0 || candidate.length() > 1048576) {
+        Toast.makeText(this, "Replacement must be 1 to 1048576 characters", Toast.LENGTH_LONG).show(); return;
+      }
+      String oldCode = codeEditor.getText().toString();
+      String newCode = candidate.toString();
+      if (oldCode.equals(newCode)) { Toast.makeText(this, "No changes detected", Toast.LENGTH_SHORT).show(); return; }
+      int oldLines = oldCode.split("\\n", -1).length;
+      int newLines = newCode.split("\\n", -1).length;
+      new android.app.AlertDialog.Builder(this)
+        .setTitle("Review replacement before applying")
+        .setMessage("Current: " + oldLines + " lines, " + oldCode.length() + " characters.\\nProposed: " + newLines + " lines, " + newCode.length() + " characters.\\n\\nThis replaces the editor buffer only. The original file is not overwritten. Use Save as... to export after reviewing.\\n\\nProposed preview:\\n" + newCode.substring(0, Math.min(1600, newCode.length())))
+        .setNegativeButton("Cancel", null)
+        .setPositiveButton("Apply to editor", (dialog, which) -> codeEditor.setText(newCode))
+        .show();
+    });
     openCode.setOnClickListener(v -> {
       Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
       pick.addCategory(Intent.CATEGORY_OPENABLE);
