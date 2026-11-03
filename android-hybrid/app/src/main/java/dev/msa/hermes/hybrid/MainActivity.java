@@ -16,6 +16,7 @@ public final class MainActivity extends Activity {
   private Uri codeUri;
   private static final int OPEN_CODE = 1401;
   private static final int SAVE_CODE = 1402;
+  private static final int IMPORT_MODEL = 1403;
   @Override public void onCreate(Bundle state) {
     super.onCreate(state);
     LinearLayout root = new LinearLayout(this);
@@ -56,6 +57,19 @@ public final class MainActivity extends Activity {
     TextView offlineHelp = new TextView(this);
     offlineHelp.setText("Requires Google AI Edge Gallery and a downloaded compatible model. Model inference runs in Gallery, not inside Hermes Hybrid.");
     root.addView(offlineHelp);
+    Button importModel = new Button(this);
+    importModel.setText("Import local .litertlm model (no inference yet)");
+    root.addView(importModel);
+    importModel.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
+      .setTitle("Import model into private storage")
+      .setMessage("Choose a trusted .litertlm file. Import may require several gigabytes of free storage. The file will be copied privately and its SHA-256 displayed. This does not enable AI inference yet.")
+      .setNegativeButton("Cancel", null)
+      .setPositiveButton("Choose model", (d, w) -> {
+        Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        pick.addCategory(Intent.CATEGORY_OPENABLE);
+        pick.setType("*/*");
+        startActivityForResult(pick, IMPORT_MODEL);
+      }).show());
     TextView editorHeading = new TextView(this);
     editorHeading.setText("Offline source editor");
     editorHeading.setTextSize(16);
@@ -233,6 +247,16 @@ public final class MainActivity extends Activity {
           codeEditor.setText(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
           codeUri = uri;
         }
+      } else if (requestCode == IMPORT_MODEL) {
+        Toast.makeText(this, "Importing model in background", Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+          try {
+            String result = ModelStore.importModel(getApplicationContext(), uri);
+            runOnUiThread(() -> new android.app.AlertDialog.Builder(this).setTitle("Model imported").setMessage(result + "\\nInference is not yet integrated.").setPositiveButton("OK", null).show());
+          } catch (Exception ex) {
+            runOnUiThread(() -> Toast.makeText(this, "Model import failed: " + ex.getMessage(), Toast.LENGTH_LONG).show());
+          }
+        }, "hermes-model-import").start();
       } else if (requestCode == SAVE_CODE) {
         try (java.io.OutputStream stream = getContentResolver().openOutputStream(uri, "wt")) {
           if (stream == null) throw new java.io.IOException("Cannot write file");
