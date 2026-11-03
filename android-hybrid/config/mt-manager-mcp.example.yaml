@@ -1,0 +1,14 @@
+# MT Manager MCP connection for Hermes Agent
+#
+# Copy this section into the running Hermes installation's ~/.hermes/config.yaml
+# under its existing mcp_servers mapping. Do not overwrite unrelated settings.
+# This file is a sample; the Android WebView prototype does not read it.
+# MT Manager MCP must be started on the same Android device (port 8787).
+# Never commit a real bearer token.
+mcp_servers:
+  mt_manager:
+    url: "http://127.0.0.1:8787/mcp"
+    enabled: true
+    timeout: 60
+    headers:
+      Authorization: "Bearer ${MT_MANAGER_MCP_TOKEN}"
