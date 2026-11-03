@@ -83,6 +83,34 @@ public final class MainActivity extends Activity {
     Button copyCode = new Button(this);
     copyCode.setText("Copy editor code for offline AI");
     root.addView(copyCode);
+    Button codingPrompt = new Button(this);
+    codingPrompt.setText("Prepare offline coding assistant prompt");
+    root.addView(codingPrompt);
+    codingPrompt.setOnClickListener(v -> {
+      String source = codeEditor.getText().toString();
+      if (source.isEmpty()) { Toast.makeText(this, "Open source code first", Toast.LENGTH_SHORT).show(); return; }
+      EditText task = new EditText(this);
+      task.setHint("Describe the coding task or defect");
+      task.setMinLines(2);
+      new android.app.AlertDialog.Builder(this)
+        .setTitle("Prepare coding task")
+        .setView(task)
+        .setNegativeButton("Cancel", null)
+        .setPositiveButton("Review prompt", (dialog, which) -> {
+          String instruction = task.getText().toString().trim();
+          if (instruction.isEmpty()) { Toast.makeText(this, "Task is empty", Toast.LENGTH_SHORT).show(); return; }
+          String prompt = "You are a coding assistant. Task: " + instruction + "\\nAnalyze the provided code. Explain the root cause if fixing a bug. Return a complete revised source file with no markdown fences, no placeholders, and no destructive commands. Do not claim tests ran unless evidence is supplied.\\nSOURCE:\\n" + source;
+          new android.app.AlertDialog.Builder(this)
+            .setTitle("Review before sharing")
+            .setMessage("The prompt contains " + source.length() + " characters of source. Inspect for secrets and private data before copying. Clipboard content may be visible to other apps.\\n\\nTask: " + instruction)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Copy prompt", (d, w) -> {
+              android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+              if (cm != null) cm.setPrimaryClip(android.content.ClipData.newPlainText("Hermes coding task", prompt));
+              Toast.makeText(this, "Coding prompt copied", Toast.LENGTH_SHORT).show();
+            }).show();
+        }).show();
+    });
     copyCode.setOnClickListener(v -> {
       String code = codeEditor.getText().toString();
       if (code.isEmpty()) { Toast.makeText(this, "Open or write code first", Toast.LENGTH_SHORT).show(); return; }
