@@ -80,6 +80,24 @@ public final class MainActivity extends Activity {
     Button reviewPatch = new Button(this);
     reviewPatch.setText("Review replacement code from clipboard");
     root.addView(reviewPatch);
+    Button copyCode = new Button(this);
+    copyCode.setText("Copy editor code for offline AI");
+    root.addView(copyCode);
+    copyCode.setOnClickListener(v -> {
+      String code = codeEditor.getText().toString();
+      if (code.isEmpty()) { Toast.makeText(this, "Open or write code first", Toast.LENGTH_SHORT).show(); return; }
+      new android.app.AlertDialog.Builder(this)
+        .setTitle("Copy code to clipboard?")
+        .setMessage("Clipboard contents can be read by other apps. Review and remove passwords, tokens and private data before copying.")
+        .setNegativeButton("Cancel", null)
+        .setPositiveButton("Copy", (dialog, which) -> {
+          android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+          if (cm != null) {
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("Hermes code", code));
+            Toast.makeText(this, "Code copied", Toast.LENGTH_SHORT).show();
+          }
+        }).show();
+    });
     reviewPatch.setOnClickListener(v -> {
       android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
       if (cm == null || !cm.hasPrimaryClip()) { Toast.makeText(this, "Clipboard is empty", Toast.LENGTH_SHORT).show(); return; }
