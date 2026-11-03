@@ -46,6 +46,25 @@ public final class MainActivity extends Activity {
     Button saveNotes = new Button(this);
     saveNotes.setText("Save offline notes");
     root.addView(saveNotes);
+    Button offlineAi = new Button(this);
+    offlineAi.setText("Open offline AI (AI Edge Gallery)");
+    root.addView(offlineAi);
+    TextView offlineHelp = new TextView(this);
+    offlineHelp.setText("Requires Google AI Edge Gallery and a downloaded compatible model. Model inference runs in Gallery, not inside Hermes Hybrid.");
+    root.addView(offlineHelp);
+    offlineAi.setOnClickListener(v -> {
+      android.content.pm.PackageManager pm = getPackageManager();
+      Intent launch = pm.getLaunchIntentForPackage("com.google.ai.edge.gallery");
+      if (launch != null) {
+        try { startActivity(launch); return; }
+        catch (android.content.ActivityNotFoundException ignored) { }
+      }
+      Intent store = new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.google.ai.edge.gallery"));
+      try { startActivity(store); }
+      catch (android.content.ActivityNotFoundException e) {
+        Toast.makeText(this, "Open Google Play and search AI Edge Gallery", Toast.LENGTH_LONG).show();
+      }
+    });
     saveNotes.setOnClickListener(v -> {
       getPreferences(MODE_PRIVATE).edit().putString("offline_notes", offlineNotes.getText().toString()).apply();
       Toast.makeText(this, "Saved locally", Toast.LENGTH_SHORT).show();
