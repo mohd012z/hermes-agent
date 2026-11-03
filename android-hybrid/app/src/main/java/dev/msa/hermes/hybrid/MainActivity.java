@@ -12,6 +12,10 @@ import android.webkit.*;
 public final class MainActivity extends Activity {
   private WebView browser;
   private String allowedOrigin;
+  private EditText codeEditor;
+  private Uri codeUri;
+  private static final int OPEN_CODE = 1401;
+  private static final int SAVE_CODE = 1402;
   @Override public void onCreate(Bundle state) {
     super.onCreate(state);
     LinearLayout root = new LinearLayout(this);
@@ -52,6 +56,40 @@ public final class MainActivity extends Activity {
     TextView offlineHelp = new TextView(this);
     offlineHelp.setText("Requires Google AI Edge Gallery and a downloaded compatible model. Model inference runs in Gallery, not inside Hermes Hybrid.");
     root.addView(offlineHelp);
+    TextView editorHeading = new TextView(this);
+    editorHeading.setText("Offline source editor");
+    editorHeading.setTextSize(16);
+    root.addView(editorHeading);
+    codeEditor = new EditText(this);
+    codeEditor.setGravity(android.view.Gravity.TOP | android.view.Gravity.START);
+    codeEditor.setTypeface(android.graphics.Typeface.MONOSPACE);
+    codeEditor.setTextSize(13);
+    codeEditor.setMinLines(7);
+    codeEditor.setHorizontallyScrolling(true);
+    codeEditor.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+    codeEditor.setHint("Open a source file, edit it, then Save as...");
+    root.addView(codeEditor, new LinearLayout.LayoutParams(-1, 0, 1));
+    LinearLayout codeActions = new LinearLayout(this);
+    Button openCode = new Button(this);
+    openCode.setText("Open code");
+    Button saveCode = new Button(this);
+    saveCode.setText("Save as...");
+    codeActions.addView(openCode, new LinearLayout.LayoutParams(0, -2, 1));
+    codeActions.addView(saveCode, new LinearLayout.LayoutParams(0, -2, 1));
+    root.addView(codeActions);
+    openCode.setOnClickListener(v -> {
+      Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+      pick.addCategory(Intent.CATEGORY_OPENABLE);
+      pick.setType("*/*");
+      startActivityForResult(pick, OPEN_CODE);
+    });
+    saveCode.setOnClickListener(v -> {
+      Intent create = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+      create.addCategory(Intent.CATEGORY_OPENABLE);
+      create.setType("text/plain");
+      create.putExtra(Intent.EXTRA_TITLE, "code.txt");
+      startActivityForResult(create, SAVE_CODE);
+    });
     offlineAi.setOnClickListener(v -> {
       android.content.pm.PackageManager pm = getPackageManager();
       Intent launch = pm.getLaunchIntentForPackage("com.google.ai.edge.gallery");
@@ -104,6 +142,38 @@ public final class MainActivity extends Activity {
       browser.setVisibility(View.VISIBLE);
       browser.loadUrl(uri.toString());
     });
+  }
+  @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    super.onActivityResult(requestCode, resultCode, data);
+    if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
+    Uri uri = data.getData();
+    try {
+      if (requestCode == OPEN_CODE) {
+        try (java.io.InputStream stream = getContentResolver().openInputStream(uri)) {
+          if (stream == null) throw new java.io.IOException("Cannot open file");
+          java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+          byte[] buffer = new byte[8192];
+          int n;
+          while ((n = stream.read(buffer)) != -1) {
+            if (out.size() + n > 1048576) throw new java.io.IOException("Source file exceeds 1 MiB limit");
+            out.write(buffer, 0, n);
+          }
+          byte[] bytes = out.toByteArray();
+          for (byte b : bytes) if (b == 0) throw new java.io.IOException("Binary file is not supported");
+          codeEditor.setText(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
+          codeUri = uri;
+        }
+      } else if (requestCode == SAVE_CODE) {
+        try (java.io.OutputStream stream = getContentResolver().openOutputStream(uri, "wt")) {
+          if (stream == null) throw new java.io.IOException("Cannot write file");
+          stream.write(codeEditor.getText().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+          stream.flush();
+        }
+        Toast.makeText(this, "Source saved", Toast.LENGTH_SHORT).show();
+      }
+    } catch (Exception e) {
+      Toast.makeText(this, "File operation failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+    }
   }
   private boolean isAllowed(Uri uri) {
     if (allowedOrigin == null || uri == null || !("https".equalsIgnoreCase(uri.getScheme())) || uri.getHost() == null) return false;
