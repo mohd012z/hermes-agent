@@ -1,0 +1,25 @@
+name: Workflow v1 standard-runner diagnostic
+on:
+  push:
+    branches:
+      - feature/workflow-engine-v1-research
+    paths:
+      - workflow_v1/**
+      - .github/workflows/workflow-v1-diagnostic.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  workflow-v1-regression:
+    name: Workflow v1 unittest (standard Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Discover and run workflow_v1 regression suite
+        run: python -m unittest discover -s workflow_v1 -t . -p 'test_*.py' -v
