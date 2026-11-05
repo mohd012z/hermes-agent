@@ -1,0 +1,36 @@
+name: Provider regression verification
+on:
+  push:
+    branches: [feature/workflow-engine-v1-research]
+    paths:
+      - hermes_cli/providers.py
+      - plugins/image_gen/openrouter/__init__.py
+      - .github/workflows/provider-regression-verification.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  provider-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
+      - uses: ./.github/actions/setup-pm
+        with:
+          extras: '["all", "anthropic", "bedrock", "mistral", "fal", "modal", "daytona", "parallel-web"]'
+          test-environment: 'true'
+          prune-python-cache: true
+      - name: Run exact failing regression cases
+        env:
+          OPENROUTER_API_KEY: ""
+          OPENAI_API_KEY: ""
+          NOUS_API_KEY: ""
+        run: |
+          "$HERMES_PYTHON" -m pytest -q tests/plugins/model_providers/test_commandcode_profile.py::TestCommandCodeFetchModelsPickerContract::test_resolve_provider_full tests/plugins/image_gen/test_openrouter_compat_provider.py::TestImageApiSurface::test_catalog_models_are_offered_only_by_openrouter
+      - name: Run both complete regression files
+        env:
+          OPENROUTER_API_KEY: ""
+          OPENAI_API_KEY: ""
+          NOUS_API_KEY: ""
+        run: |
+          "$HERMES_PYTHON" -m pytest -q tests/plugins/model_providers/test_commandcode_profile.py tests/plugins/image_gen/test_openrouter_compat_provider.py
