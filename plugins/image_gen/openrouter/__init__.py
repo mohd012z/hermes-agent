@@ -558,6 +558,12 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
             merged = {entry["id"]: entry for entry in self._image_api_live_models()}
         for entry in self._live_models():
             merged.setdefault(entry["id"], entry)
+        # Keep the supported Image API catalog selectable when the live endpoint
+        # returns only a subset; Nous must never advertise these OpenRouter rows.
+        if self._supports_image_api:
+            for model_id, meta in _IMAGE_API_MODELS.items():
+                merged.setdefault(model_id, {"id": model_id, "display": meta["display"],
+                                             "strengths": f"{meta['strengths']} (Image API)"})
         if merged:
             return sorted(merged.values(), key=lambda m: (_MODEL_PRIORITY.get(m["id"], 2), m["id"]))
         models = [{"id": model_id, **meta} for model_id, meta in _KNOWN_MODEL_META.items()]
