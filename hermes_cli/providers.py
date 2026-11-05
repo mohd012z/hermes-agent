@@ -195,6 +195,12 @@ def get_provider(name: str, *, allow_network: bool = True) -> Optional[ProviderD
     """Look up a built-in provider by id or alias: models.dev catalog merged with the Hermes overlay;
     Hermes-only overlay (nous, openai-codex, …); plugin provider profiles with a concrete endpoint."""
     canonical = normalize_provider(name)
+    # CommandCode is a registered plugin provider whose credential contract differs
+    # from models.dev; prefer its explicit profile to avoid selecting CMD_API_KEY.
+    if canonical in ("commandcode", "commandcode-anthropic"):
+        plugin_def = _plugin_profile_pdef(canonical)
+        if plugin_def is not None:
+            return plugin_def
     mdev_info = _models_dev_info(canonical, allow_network)
     overlay = HERMES_OVERLAYS.get(canonical)
     if mdev_info is not None:

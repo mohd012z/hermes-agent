@@ -1,0 +1,44 @@
+name: Workflow v1 standard-runner diagnostic
+on:
+  push:
+    branches:
+      - feature/workflow-engine-v1-research
+    paths:
+      - workflow_v1/**
+      - .github/workflows/workflow-v1-diagnostic.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  workflow-v1-regression:
+    name: Workflow v1 regression (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64
+            runner: ubuntu-latest
+          - name: Windows x64
+            runner: windows-latest
+          - name: Windows ARM64
+            runner: windows-11-arm
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Report architecture and runtime
+        shell: python
+        run: |
+          import os, platform, sys
+          print('runner_os=', os.environ.get('RUNNER_OS'))
+          print('runner_arch=', os.environ.get('RUNNER_ARCH'))
+          print('machine=', platform.machine())
+          print('python=', sys.version)
+          assert os.environ.get('RUNNER_ARCH') == ('ARM64' if 'arm' in platform.machine().lower() else 'X64')
+      - name: Discover and run workflow_v1 regression suite
+        run: python -m unittest discover -s workflow_v1 -t . -p 'test_*.py' -v
