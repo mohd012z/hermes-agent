@@ -3,7 +3,7 @@
 Status: research-only specification. No order execution, live alerts, production deployment, or billing changes.
 
 ## Scope and ownership
-- **msa-herme5-agent** (proposed rename of this repository): general agent runtime, task orchestration, bounded tools, approvals, persistence, reporting.
+- **msa-agent** (renamed repository): general agent runtime, task orchestration, bounded tools, approvals, persistence, reporting.
 - **msa-market-intelligence** (proposed separate repository): market-data normalization, technical calculations, event studies, backtests, visualization.
 - Primary instruments: XAUUSD and BTCUSD; contextual factors: USD index/proxies, US yields, scheduled economic releases, market sessions, liquidity and spread.
 - Do not rename this repository until PR links, CI, external integrations, upstream remotes and Android clients have been audited.
